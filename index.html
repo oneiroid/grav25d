@@ -13,14 +13,14 @@
     --glow-cyan: #00d4e8;
     --glow-amber: #e8a030;
     --glow-rose: #e84060;
-    --hud-text: #8090a8;
-    --hud-bright: #c8d0e0;
-    --hud-dim: #404858;
-    --panel-bg: rgba(8, 10, 18, 0.92);
-    --panel-border: rgba(0, 180, 220, 0.08);
-    --panel-glow: rgba(0, 180, 220, 0.04);
+    --hud-text: #b8c8e0;
+    --hud-bright: #eef2f8;
+    --hud-dim: #7088a0;
+    --panel-bg: rgba(8, 10, 18, 0.94);
+    --panel-border: rgba(0, 180, 220, 0.15);
+    --panel-glow: rgba(0, 180, 220, 0.06);
     --accent: #e8a030;
-    --bracket-color: rgba(0, 200, 230, 0.25);
+    --bracket-color: rgba(0, 200, 230, 0.35);
     --bracket-len: 14px;
   }
 
@@ -30,7 +30,7 @@
     background: var(--void);
     color: var(--hud-text);
     font-family: 'DM Mono', monospace;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 300;
     overflow: hidden;
     height: 100vh;
@@ -90,14 +90,14 @@
   }
   #top-bar h1 {
     font-family: 'Fraunces', serif;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--hud-bright);
     letter-spacing: 4px;
     text-transform: uppercase;
   }
   #top-bar .sub {
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 5px;
     text-transform: uppercase;
     color: var(--hud-dim);
@@ -113,14 +113,14 @@
   }
   .stat .lbl {
     color: var(--hud-dim);
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 2px;
     text-transform: uppercase;
   }
   .stat .val {
     color: var(--hud-bright);
     font-weight: 400;
-    font-size: 13px;
+    font-size: 14px;
   }
   .val.on { color: var(--glow-cyan); text-shadow: 0 0 8px rgba(0,212,232,0.3); }
   .val.off { color: var(--glow-amber); text-shadow: 0 0 8px rgba(232,160,48,0.3); }
@@ -160,7 +160,7 @@
     box-shadow: 0 0 20px var(--panel-glow), inset 0 0 30px rgba(0,180,220,0.01);
   }
   #body-panel .section-label {
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--hud-dim);
@@ -168,7 +168,7 @@
   }
   .body-row {
     display: flex; align-items: center; gap: 8px; margin: 4px 0;
-    font-size: 11px;
+    font-size: 12px;
   }
   .body-pip {
     width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
@@ -194,7 +194,7 @@
     justify-content: space-between;
     padding: 10px 20px 12px;
     gap: 16px;
-    border-top: 1px solid rgba(0,180,220,0.06);
+    border-top: 1px solid rgba(0,180,220,0.12);
     position: relative;
   }
   /* Glow line on top edge */
@@ -203,7 +203,7 @@
     position: absolute;
     top: -1px; left: 10%; right: 10%;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0,200,230,0.15), transparent);
+    background: linear-gradient(90deg, transparent, rgba(0,200,230,0.25), transparent);
   }
 
   .toolbar-section {
@@ -213,28 +213,36 @@
   }
 
   .section-label {
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--hud-dim);
   }
 
-  /* ── Mass slider ── */
-  .mass-control {
+  /* ── Sliders ── */
+  .slider-control {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+  }
+  .slider-control .slider-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hud-text);
+    min-width: 54px;
+    text-align: right;
   }
   input[type=range] {
     -webkit-appearance: none; appearance: none;
-    width: 140px; height: 3px;
-    background: rgba(80, 100, 140, 0.15);
+    width: 160px; height: 4px;
+    background: rgba(80, 100, 140, 0.30);
     border-radius: 2px; outline: none;
     cursor: pointer;
   }
   input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
-    width: 14px; height: 14px; border-radius: 50%;
+    width: 16px; height: 16px; border-radius: 50%;
     background: var(--accent);
     cursor: pointer;
     box-shadow: 0 0 10px rgba(232,160,48,0.35), 0 0 3px rgba(232,160,48,0.5);
@@ -243,12 +251,30 @@
   input[type=range]::-webkit-slider-thumb:hover {
     box-shadow: 0 0 16px rgba(232,160,48,0.5), 0 0 4px rgba(232,160,48,0.7);
   }
-  #mass-val {
-    font-size: 15px;
+  .slider-val {
+    font-size: 13px;
     color: var(--hud-bright);
     font-weight: 400;
-    min-width: 42px;
+    min-width: 44px;
     text-align: right;
+  }
+  #mass-slider { width: 200px; }
+
+  /* ── Params panel (left side) ── */
+  #params-panel {
+    position: fixed;
+    top: 60px; left: 16px;
+    z-index: 10;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 10px 14px;
+    min-width: 310px;
+    box-shadow: 0 0 20px var(--panel-glow), inset 0 0 30px rgba(0,180,220,0.01);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
   }
 
   /* ── Preset pills ── */
@@ -256,13 +282,13 @@
     display: flex; gap: 5px; flex-wrap: wrap;
   }
   .preset-btn {
-    background: rgba(80, 100, 140, 0.06);
-    border: 1px solid rgba(80, 100, 140, 0.12);
+    background: rgba(80, 100, 140, 0.10);
+    border: 1px solid rgba(80, 100, 140, 0.22);
     border-radius: 20px;
     padding: 3px 11px;
     color: var(--hud-text);
     font-family: 'DM Mono', monospace;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 300;
     cursor: pointer;
     transition: all 0.25s ease;
@@ -291,16 +317,16 @@
   }
   .k {
     display: inline-flex; align-items: center; gap: 2px;
-    font-size: 9px; color: var(--hud-dim);
+    font-size: 10px; color: var(--hud-dim);
   }
   .k b {
-    background: rgba(80, 100, 140, 0.08);
-    border: 1px solid rgba(80, 100, 140, 0.15);
+    background: rgba(80, 100, 140, 0.14);
+    border: 1px solid rgba(80, 100, 140, 0.25);
     border-radius: 3px;
-    padding: 0px 4px;
+    padding: 1px 5px;
     color: var(--hud-bright);
     font-weight: 400;
-    font-size: 9px;
+    font-size: 10px;
   }
 
   /* ── Toast ── */
@@ -356,15 +382,43 @@
   <div id="body-list"><span style="color:var(--hud-dim)">no bodies</span></div>
 </div>
 
+<!-- ── Params panel (left) ── -->
+<div id="params-panel" class="bracketed">
+  <div class="section-label">parameters</div>
+  <div class="slider-control">
+    <span class="slider-label">mass</span>
+    <input type="range" id="mass-slider" min="-200" max="200" step="1.0" value="5">
+    <span class="slider-val" id="mass-val">5.0</span>
+  </div>
+  <div class="slider-control">
+    <span class="slider-label">gravity</span>
+    <input type="range" id="g-slider" min="-50" max="50" step="0.1" value="6.674">
+    <span class="slider-val" id="g-val">6.674</span>
+  </div>
+  <div class="slider-control">
+    <span class="slider-label">time</span>
+    <input type="range" id="time-slider" min="0.05" max="5" step="0.05" value="1">
+    <span class="slider-val" id="time-val">1.0x</span>
+  </div>
+  <div class="slider-control">
+    <span class="slider-label">z scale</span>
+    <input type="range" id="zscale-slider" min="1" max="30" step="0.5" value="8.5">
+    <span class="slider-val" id="zscale-val">8.5</span>
+  </div>
+  <div class="slider-control">
+    <span class="slider-label">curve</span>
+    <input type="range" id="curve-slider" min="0.1" max="2" step="0.05" value="0.8">
+    <span class="slider-val" id="curve-val">0.80</span>
+  </div>
+  <div class="slider-control">
+    <span class="slider-label">soften</span>
+    <input type="range" id="soften-slider" min="0.2" max="8" step="0.1" value="2.0">
+    <span class="slider-val" id="soften-val">2.0</span>
+  </div>
+</div>
+
 <!-- ── Bottom toolbar ── -->
 <div id="bottom-bar"><div id="bottom-inner">
-  <div class="toolbar-section">
-    <span class="section-label">mass</span>
-    <div class="mass-control">
-      <input type="range" id="mass-slider" min="-50" max="50" step="0.5" value="5">
-      <span id="mass-val">5.0</span>
-    </div>
-  </div>
   <div class="toolbar-section">
     <div class="preset-row">
       <button class="preset-btn active" data-p="solar">solar</button>
@@ -402,17 +456,18 @@
 // =====================================================
 
 const G_DEFAULT = 6.674;
-const SOFTENING = 0.5;
-const GRID_SOFTENING = 2.0;  // Plummer softening radius for grid wells
+const SOFTENING = 0.2;
+let GRID_SOFTENING = 2.;    // Plummer softening radius for grid wells
 const DT = 0.005;
 const STEPS_PER_FRAME = 4;
 const BOUNDARY_R = 60;
 const BOUNCE_DAMP = 0.8;
-const GRID_N = 100;         // grid resolution
-const Z_SCALE = 7.5;        // depth multiplier for pow-of-log mapping
-const CURVATURE_EXP = 0.55; // power exponent — compresses big masses, amplifies small
-const PHI_SCALE = 20;       // log input divisor — reduces bump/well asymmetry under normalization
-const MAX_WELL_DEPTH = 150; // clamp only truly extreme depths
+const GRID_N = 100;          // grid resolution
+let Z_SCALE = 8.5;           // depth multiplier for pow-of-log mapping
+let CURVATURE_EXP = 0.8;    // power exponent — compresses big masses, amplifies small
+const PHI_SCALE = 20;        // log input divisor — reduces bump/well asymmetry under normalization
+const MAX_WELL_DEPTH = 150;  // clamp only truly extreme depths
+let timeDilation = 1.0;      // time dilation multiplier
 
 // ── 3D Vector ────────────────────────────────────────
 const v3 = {
@@ -526,7 +581,7 @@ class Body {
     this.cidx = colorIdx++ % COLORS.length;
     this.color = COLORS[this.cidx];
     this.hex = COLOR_HEX[this.cidx];
-    this.r = Math.max(0.15, 0.5 * Math.pow(Math.abs(mass), 1/3));
+    this.r = Math.max(0.2, 0.65 * Math.pow(Math.abs(mass), 1/3));
   }
 }
 
@@ -542,6 +597,7 @@ class Simulation {
 
   step() {
     if (this.paused) return;
+    const dt = DT * timeDilation;
     const n = this.bodies.length;
     for (let i = 0; i < n; i++) {
       const bi = this.bodies[i];
@@ -555,11 +611,11 @@ class Simulation {
         const f = this.G * bj.mass / (r * r * r);
         ax += f * dx; ay += f * dy;
       }
-      bi.vx += ax * DT; bi.vy += ay * DT;
+      bi.vx += ax * dt; bi.vy += ay * dt;
     }
     for (const b of this.bodies) {
-      b.x += b.vx * DT;
-      b.y += b.vy * DT;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
       b.r = Math.max(0.15, 0.5 * Math.pow(Math.abs(b.mass), 1/3));
       const d = Math.hypot(b.x, b.y);
       if (d > BOUNDARY_R) {
@@ -1120,13 +1176,35 @@ document.querySelectorAll('.preset-btn').forEach(btn => {
   });
 });
 
-// Mass slider
-const slider = document.getElementById('mass-slider');
-const mval = document.getElementById('mass-val');
-slider.addEventListener('input', () => {
-  sim.nextMass = parseFloat(slider.value);
-  mval.textContent = sim.nextMass.toFixed(1);
-});
+// Sliders
+function bindSlider(id, valId, fmt, onChange) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => { const v = parseFloat(sl.value); vl.textContent = fmt(v); onChange(v); });
+  // Scrollwheel on slider
+  sl.addEventListener('wheel', e => {
+    e.preventDefault();
+    const step = parseFloat(sl.step) || 1;
+    const delta = e.deltaY < 0 ? step : -step;
+    const min = parseFloat(sl.min), max = parseFloat(sl.max);
+    sl.value = Math.max(min, Math.min(max, parseFloat(sl.value) + delta));
+    sl.dispatchEvent(new Event('input'));
+  }, { passive: false });
+  return sl;
+}
+const slider = bindSlider('mass-slider', 'mass-val', v => v.toFixed(1), v => { sim.nextMass = v; });
+bindSlider('g-slider', 'g-val', v => v.toFixed(3), v => { sim.G = v; });
+bindSlider('time-slider', 'time-val', v => v.toFixed(1) + 'x', v => { timeDilation = v; });
+bindSlider('zscale-slider', 'zscale-val', v => v.toFixed(1), v => { Z_SCALE = v; });
+bindSlider('curve-slider', 'curve-val', v => v.toFixed(2), v => { CURVATURE_EXP = v; });
+bindSlider('soften-slider', 'soften-val', v => v.toFixed(1), v => { GRID_SOFTENING = v; });
+
+function syncSliders() {
+  document.getElementById('mass-slider').value = sim.nextMass;
+  document.getElementById('mass-val').textContent = sim.nextMass.toFixed(1);
+  document.getElementById('g-slider').value = sim.G;
+  document.getElementById('g-val').textContent = sim.G.toFixed(3);
+}
 
 // Keyboard
 document.addEventListener('keydown', e => {
@@ -1134,10 +1212,10 @@ document.addEventListener('keydown', e => {
   switch (e.key) {
     case ' ': e.preventDefault(); sim.paused = !sim.paused; toast(sim.paused ? 'PAUSED' : 'RUNNING'); break;
     case 'r': case 'R': sim.loadPreset(sim.currentPreset); toast('RESET'); break;
-    case 'G': sim.G = Math.min(sim.G + 1, 50); break;
-    case 'g': sim.G = Math.max(sim.G - 1, 0.1); break;
-    case '=': case '+': sim.nextMass = Math.min(sim.nextMass + 1, 50); slider.value = sim.nextMass; mval.textContent = sim.nextMass.toFixed(1); break;
-    case '-': sim.nextMass = Math.max(sim.nextMass - 1, -50); slider.value = sim.nextMass; mval.textContent = sim.nextMass.toFixed(1); break;
+    case 'G': sim.G = Math.min(sim.G + 1, 50); syncSliders(); break;
+    case 'g': sim.G = Math.max(sim.G - 1, -50); syncSliders(); break;
+    case '=': case '+': sim.nextMass = Math.min(sim.nextMass + 1, 200); syncSliders(); break;
+    case '-': sim.nextMass = Math.max(sim.nextMass - 1, -200); syncSliders(); break;
   }
 });
 
@@ -1172,7 +1250,7 @@ ren.canvas.addEventListener('mouseup', e => {
     const hit = ren.unproject(e.clientX, e.clientY);
     if (hit && Math.hypot(hit.x, hit.y) < BOUNDARY_R) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 0.5 + Math.random() * 1.5;
+      const speed = 1 + Math.random() * 8;
       sim.addBody(hit.x, hit.y, undefined, speed * Math.cos(angle), speed * Math.sin(angle));
     }
   }
