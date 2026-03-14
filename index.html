@@ -974,7 +974,7 @@ class Renderer {
     this.camYaw = -30 * Math.PI / 180;
     this.camDist = 100;
     this.camTarget = v3.create(0, 0, -2);
-    this.refZ = 0;  // reference Z level (computed per frame)
+    // No reference Z normalization — mesh shows true potential surface
 
     // Grid vertex data: (GRID_N+1)^2 vertices
     this.gridN = GRID_N;
@@ -1116,29 +1116,12 @@ class Renderer {
     this.bodyBuf = gl.createBuffer();
   }
 
-  // Compute reference Z level: average *raw* potential at boundary, then map once.
-  // Averaging raw phi before the nonlinear mapPhi prevents asymmetry between
-  // positive and negative masses at different distances from the boundary.
-  _computeRefZ() {
-    const bodies = this.sim.bodies;
-    const G = this.sim.G;
-    if (!bodies.length) { this.refZ = 0; return; }
-    let sum = 0;
-    const n = 8;
-    for (let k = 0; k < n; k++) {
-      const a = (k / n) * Math.PI * 2;
-      sum += rawPotential(BOUNDARY_R * Math.cos(a), BOUNDARY_R * Math.sin(a), bodies, G);
-    }
-    this.refZ = mapPhi(sum / n);
-  }
-
   _updateGridVerts() {
     const gn1 = this.gridN + 1;
     const extent = Math.max(BOUNDARY_R + 2, this.camDist * 0.55);
     const step = (extent * 2) / this.gridN;
     const bodies = this.sim.bodies;
     const G = this.sim.G;
-    const ref = this.refZ;
 
     for (let i = 0; i <= this.gridN; i++) {
       for (let j = 0; j <= this.gridN; j++) {
@@ -1147,7 +1130,7 @@ class Renderer {
         const idx = (i * gn1 + j) * 3;
         this.gridVerts[idx] = x;
         this.gridVerts[idx + 1] = y;
-        this.gridVerts[idx + 2] = potential(x, y, bodies, G) - ref;
+        this.gridVerts[idx + 2] = potential(x, y, bodies, G);
       }
     }
   }
@@ -1155,7 +1138,6 @@ class Renderer {
   _updateRingVerts() {
     const bodies = this.sim.bodies;
     const G = this.sim.G;
-    const ref = this.refZ;
     for (let i = 0; i <= this.ringSegs; i++) {
       const a = (i / this.ringSegs) * Math.PI * 2;
       const x = BOUNDARY_R * Math.cos(a);
@@ -1163,7 +1145,7 @@ class Renderer {
       const idx = i * 3;
       this.ringVerts[idx] = x;
       this.ringVerts[idx + 1] = y;
-      this.ringVerts[idx + 2] = potential(x, y, bodies, G) - ref;
+      this.ringVerts[idx + 2] = potential(x, y, bodies, G);
     }
   }
 
@@ -1235,7 +1217,6 @@ class Renderer {
     const gl = this.gl;
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    this._computeRefZ();
     this._updateGridVerts();
     this._updateRingVerts();
     const mvp = this.getMVP();
@@ -1303,18 +1284,17 @@ class Renderer {
     // Bodies sit at bottom of their own wells (include self-potential via softening)
     const data = [];
     const G = this.sim.G;
-    const ref = this.refZ;
     // Pass 1: glow (bigger, dim) — bodies offset by radius INTO their curve
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
-      const surfZ = bodyFollowZ ? potential(b.x, b.y, bodies, G) - ref : 0;
+      const surfZ = bodyFollowZ ? potential(b.x, b.y, bodies, G) : 0;
       const offset = b.mass >= 0 ? b.r : -b.r; // positive mass sits above well, negative below bump
       data.push(b.x, b.y, surfZ + offset, b.color[0]*0.6, b.color[1]*0.6, b.color[2]*0.6, 0.25, b.r * 8);
     }
     // Pass 2: core (smaller, bright)
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
-      const surfZ = bodyFollowZ ? potential(b.x, b.y, bodies, G) - ref : 0;
+      const surfZ = bodyFollowZ ? potential(b.x, b.y, bodies, G) : 0;
       const offset = b.mass >= 0 ? b.r : -b.r;
       data.push(b.x, b.y, surfZ + offset, b.color[0], b.color[1], b.color[2], 0.95, b.r * 3.5);
     }
