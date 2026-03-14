@@ -277,6 +277,79 @@
     gap: 7px;
   }
 
+  /* ── Toggle switch ── */
+  .toggle-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toggle-control .slider-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hud-text);
+    min-width: 54px;
+    text-align: right;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 34px; height: 18px;
+    background: rgba(80, 100, 140, 0.30);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on {
+    background: rgba(0, 200, 230, 0.35);
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--hud-dim);
+    transition: all 0.25s;
+  }
+  .toggle-switch.on::after {
+    left: 18px;
+    background: var(--glow-cyan);
+    box-shadow: 0 0 6px rgba(0, 212, 232, 0.4);
+  }
+  .toggle-status {
+    font-size: 11px;
+    color: var(--hud-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Expand/collapse for advanced params ── */
+  .params-expand-btn {
+    background: none;
+    border: none;
+    color: var(--hud-dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 2px 0;
+    transition: color 0.2s;
+    text-align: left;
+  }
+  .params-expand-btn:hover {
+    color: var(--hud-text);
+  }
+  .params-advanced {
+    display: none;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .params-advanced.open {
+    display: flex;
+  }
+
   /* ── Preset pills ── */
   .preset-row {
     display: flex; gap: 5px; flex-wrap: wrap;
@@ -520,20 +593,28 @@
     <input type="range" id="time-slider" min="0.05" max="5" step="0.05" value="1">
     <span class="slider-val" id="time-val">1.0x</span>
   </div>
-  <div class="slider-control">
-    <span class="slider-label">z scale</span>
-    <input type="range" id="zscale-slider" min="1" max="30" step="0.5" value="8.5">
-    <span class="slider-val" id="zscale-val">8.5</span>
-  </div>
-  <div class="slider-control">
-    <span class="slider-label">curve</span>
-    <input type="range" id="curve-slider" min="0.1" max="2" step="0.05" value="0.8">
-    <span class="slider-val" id="curve-val">0.80</span>
-  </div>
-  <div class="slider-control">
-    <span class="slider-label">soften</span>
-    <input type="range" id="soften-slider" min="0.2" max="8" step="0.1" value="2.0">
-    <span class="slider-val" id="soften-val">2.0</span>
+  <button class="params-expand-btn" id="params-expand">+ advanced</button>
+  <div class="params-advanced" id="params-advanced">
+    <div class="toggle-control">
+      <span class="slider-label">body z</span>
+      <div class="toggle-switch" id="body-z-toggle"></div>
+      <span class="toggle-status" id="body-z-status">off</span>
+    </div>
+    <div class="slider-control">
+      <span class="slider-label">z scale</span>
+      <input type="range" id="zscale-slider" min="1" max="30" step="0.5" value="8.5">
+      <span class="slider-val" id="zscale-val">8.5</span>
+    </div>
+    <div class="slider-control">
+      <span class="slider-label">curve</span>
+      <input type="range" id="curve-slider" min="0.1" max="2" step="0.05" value="0.8">
+      <span class="slider-val" id="curve-val">0.80</span>
+    </div>
+    <div class="slider-control">
+      <span class="slider-label">soften</span>
+      <input type="range" id="soften-slider" min="0.2" max="8" step="0.1" value="2.0">
+      <span class="slider-val" id="soften-val">2.0</span>
+    </div>
   </div>
 </div>
 
@@ -592,6 +673,7 @@ const BOUNCE_DAMP = 0.8;
 const GRID_N = 100;          // grid resolution
 let Z_SCALE = 8.5;           // depth multiplier for pow-of-log mapping
 let CURVATURE_EXP = 0.8;    // power exponent — compresses big masses, amplifies small
+let bodyFollowZ = false;     // when true, bodies follow curvature along Z axis
 const PHI_SCALE = 20;        // log input divisor — reduces bump/well asymmetry under normalization
 const MAX_WELL_DEPTH = 150;  // clamp only truly extreme depths
 let timeDilation = 1.0;      // time dilation multiplier
@@ -1211,14 +1293,14 @@ class Renderer {
     // Pass 1: glow (bigger, dim) — bodies offset by radius INTO their curve
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
-      const surfZ = potential(b.x, b.y, bodies, G) - ref;
+      const surfZ = bodyFollowZ ? potential(b.x, b.y, bodies, G) - ref : 0;
       const offset = b.mass >= 0 ? b.r : -b.r; // positive mass sits above well, negative below bump
       data.push(b.x, b.y, surfZ + offset, b.color[0]*0.6, b.color[1]*0.6, b.color[2]*0.6, 0.25, b.r * 8);
     }
     // Pass 2: core (smaller, bright)
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
-      const surfZ = potential(b.x, b.y, bodies, G) - ref;
+      const surfZ = bodyFollowZ ? potential(b.x, b.y, bodies, G) - ref : 0;
       const offset = b.mass >= 0 ? b.r : -b.r;
       data.push(b.x, b.y, surfZ + offset, b.color[0], b.color[1], b.color[2], 0.95, b.r * 3.5);
     }
@@ -1325,6 +1407,20 @@ bindSlider('time-slider', 'time-val', v => v.toFixed(1) + 'x', v => { timeDilati
 bindSlider('zscale-slider', 'zscale-val', v => v.toFixed(1), v => { Z_SCALE = v; });
 bindSlider('curve-slider', 'curve-val', v => v.toFixed(2), v => { CURVATURE_EXP = v; });
 bindSlider('soften-slider', 'soften-val', v => v.toFixed(1), v => { GRID_SOFTENING = v; });
+
+// Body Z toggle
+document.getElementById('body-z-toggle').addEventListener('click', function() {
+  bodyFollowZ = !bodyFollowZ;
+  this.classList.toggle('on', bodyFollowZ);
+  document.getElementById('body-z-status').textContent = bodyFollowZ ? 'on' : 'off';
+});
+
+// Advanced params expand/collapse
+document.getElementById('params-expand').addEventListener('click', function() {
+  const adv = document.getElementById('params-advanced');
+  const open = adv.classList.toggle('open');
+  this.textContent = open ? '- advanced' : '+ advanced';
+});
 
 function syncSliders() {
   document.getElementById('mass-slider').value = sim.nextMass;
