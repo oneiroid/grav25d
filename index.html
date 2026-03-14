@@ -277,6 +277,13 @@
     gap: 7px;
   }
 
+  /* ── Params section divider ── */
+  .params-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,180,220,0.18), transparent);
+    margin: 3px 0;
+  }
+
   /* ── Toggle switch ── */
   .toggle-control {
     display: flex;
@@ -577,12 +584,14 @@
 
 <!-- ── Params panel (left) ── -->
 <div id="params-panel" class="bracketed">
-  <div class="section-label">parameters</div>
+  <div class="section-label">new body</div>
   <div class="slider-control">
     <span class="slider-label">mass</span>
     <input type="range" id="mass-slider" min="-200" max="200" step="1.0" value="5">
     <span class="slider-val" id="mass-val">5.0</span>
   </div>
+  <div class="params-divider"></div>
+  <div class="section-label">simulation</div>
   <div class="slider-control">
     <span class="slider-label">gravity</span>
     <input type="range" id="g-slider" min="-50" max="50" step="0.1" value="6.674">
@@ -614,6 +623,11 @@
       <span class="slider-label">soften</span>
       <input type="range" id="soften-slider" min="0.2" max="8" step="0.1" value="2.0">
       <span class="slider-val" id="soften-val">2.0</span>
+    </div>
+    <div class="slider-control">
+      <span class="slider-label">radius</span>
+      <input type="range" id="radius-slider" min="30" max="300" step="5" value="120">
+      <span class="slider-val" id="radius-val">120</span>
     </div>
   </div>
 </div>
@@ -668,7 +682,7 @@ const SOFTENING = 0.2;
 let GRID_SOFTENING = 2.;    // Plummer softening radius for grid wells
 const DT = 0.005;
 const STEPS_PER_FRAME = 4;
-const BOUNDARY_R = 60;
+let BOUNDARY_R = 120;
 const BOUNCE_DAMP = 0.8;
 const GRID_N = 100;          // grid resolution
 let Z_SCALE = 8.5;           // depth multiplier for pow-of-log mapping
@@ -1407,6 +1421,7 @@ bindSlider('time-slider', 'time-val', v => v.toFixed(1) + 'x', v => { timeDilati
 bindSlider('zscale-slider', 'zscale-val', v => v.toFixed(1), v => { Z_SCALE = v; });
 bindSlider('curve-slider', 'curve-val', v => v.toFixed(2), v => { CURVATURE_EXP = v; });
 bindSlider('soften-slider', 'soften-val', v => v.toFixed(1), v => { GRID_SOFTENING = v; });
+bindSlider('radius-slider', 'radius-val', v => v.toFixed(0), v => { BOUNDARY_R = v; });
 
 // Body Z toggle
 document.getElementById('body-z-toggle').addEventListener('click', function() {
