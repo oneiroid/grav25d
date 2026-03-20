@@ -387,6 +387,32 @@
     box-shadow: 0 0 10px rgba(232, 160, 48, 0.1), inset 0 0 8px rgba(232, 160, 48, 0.03);
   }
 
+  /* ── Boundary size buttons ── */
+  .boundary-row {
+    display: flex; gap: 4px;
+  }
+  .boundary-btn {
+    background: rgba(80, 100, 140, 0.10);
+    border: 1px solid rgba(80, 100, 140, 0.22);
+    border-radius: 4px;
+    padding: 1px 8px;
+    color: var(--hud-text);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  .boundary-btn:hover {
+    border-color: rgba(0, 200, 230, 0.3);
+    color: var(--hud-bright);
+  }
+  .boundary-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232, 160, 48, 0.06);
+  }
+
   /* ── Keybinding hints (inline in bottom bar) ── */
   .keyhints {
     display: flex;
@@ -602,18 +628,22 @@
     <input type="range" id="time-slider" min="0.05" max="5" step="0.05" value="1">
     <span class="slider-val" id="time-val">1.0x</span>
   </div>
+  <div class="toggle-control">
+    <span class="slider-label">body z</span>
+    <div class="toggle-switch" id="body-z-toggle"></div>
+    <span class="toggle-status" id="body-z-status">off</span>
+  </div>
+  <div class="slider-control">
+    <span class="slider-label">boundary</span>
+    <div class="boundary-row">
+      <button class="boundary-btn" data-r="60">S</button>
+      <button class="boundary-btn active" data-r="120">M</button>
+      <button class="boundary-btn" data-r="200">L</button>
+      <button class="boundary-btn" data-r="350">XL</button>
+    </div>
+  </div>
   <button class="params-expand-btn" id="params-expand">+ advanced</button>
   <div class="params-advanced" id="params-advanced">
-    <div class="toggle-control">
-      <span class="slider-label">body z</span>
-      <div class="toggle-switch" id="body-z-toggle"></div>
-      <span class="toggle-status" id="body-z-status">off</span>
-    </div>
-    <div class="slider-control">
-      <span class="slider-label">z scale</span>
-      <input type="range" id="zscale-slider" min="1" max="30" step="0.5" value="8.5">
-      <span class="slider-val" id="zscale-val">8.5</span>
-    </div>
     <div class="slider-control">
       <span class="slider-label">curve</span>
       <input type="range" id="curve-slider" min="0.1" max="2" step="0.05" value="0.8">
@@ -623,11 +653,6 @@
       <span class="slider-label">soften</span>
       <input type="range" id="soften-slider" min="0.2" max="8" step="0.1" value="2.0">
       <span class="slider-val" id="soften-val">2.0</span>
-    </div>
-    <div class="slider-control">
-      <span class="slider-label">radius</span>
-      <input type="range" id="radius-slider" min="30" max="300" step="5" value="120">
-      <span class="slider-val" id="radius-val">120</span>
     </div>
   </div>
 </div>
@@ -684,10 +709,10 @@ const DT = 0.005;
 const STEPS_PER_FRAME = 4;
 let BOUNDARY_R = 120;
 const BOUNCE_DAMP = 0.8;
-const GRID_N = 100;          // grid resolution
+const GRID_N = 200;          // grid resolution
 let Z_SCALE = 8.5;           // depth multiplier for pow-of-log mapping
 let CURVATURE_EXP = 0.8;    // power exponent — compresses big masses, amplifies small
-let bodyFollowZ = false;     // when true, bodies follow curvature along Z axis
+let bodyFollowZ = true;     // when true, bodies follow curvature along Z axis
 const PHI_SCALE = 20;        // log input divisor — reduces bump/well asymmetry under normalization
 const MAX_WELL_DEPTH = 150;  // clamp only truly extreme depths
 let timeDilation = 1.0;      // time dilation multiplier
@@ -850,6 +875,9 @@ class Simulation {
           b.vx -= (1 + BOUNCE_DAMP) * vDotN * nx;
           b.vy -= (1 + BOUNCE_DAMP) * vDotN * ny;
         }
+        // Dampen total velocity on each boundary hit to prevent energy buildup
+        b.vx *= 0.5;
+        b.vy *= 0.5;
       }
     }
   }
@@ -872,47 +900,45 @@ class Simulation {
     this.currentPreset = name;
     const presets = {
       solar: () => {
-        this.addBody(0, 0, 20, 0, 0);
-        this.addBody(6, 0, 0.8, 0, Math.sqrt(this.G * 20 / 6));
-        this.addBody(-10, 0, 1.2, 0, -Math.sqrt(this.G * 20 / 10));
-        this.addBody(0, 15, 0.5, -Math.sqrt(this.G * 20 / 15), 0);
+        const Ms = 150, r1 = 20, r2 = 35, r3 = 50;
+        this.addBody(0, 0, Ms, 0, 0);
+        this.addBody(r1, 0, 6, 0, Math.sqrt(this.G * Ms / r1));
+        this.addBody(-r2, 0, 10, 0, -Math.sqrt(this.G * Ms / r2));
+        this.addBody(0, r3, 3, -Math.sqrt(this.G * Ms / r3), 0);
       },
       binary: () => {
-        const sep = 8, m = 10;
+        const sep = 25, m = 80;
         const v = Math.sqrt(this.G * m / (4 * (sep / 2)));
         this.addBody(-sep / 2, 0, m, 0, -v);
         this.addBody(sep / 2, 0, m, 0, v);
       },
       figure8: () => {
-        const m = 3, S = 6;
+        const m = 40, S = 18;
         const vS = Math.sqrt(this.G * m / S);
         this.addBody(-0.97 * S, 0.243 * S, m, 0.4662 * vS, 0.4324 * vS);
         this.addBody(0.97 * S, -0.243 * S, m, 0.4662 * vS, 0.4324 * vS);
         this.addBody(0, 0, m, -0.9324 * vS, -0.8647 * vS);
       },
       trojan: () => {
-        const M = 18;
-        const r1 = 8, r2 = 8;
+        const M = 150;
+        const r1 = 30, r2 = 30;
         const v1 = Math.sqrt(this.G * M / r1);
         const v2_ = Math.sqrt(this.G * M / r2);
         this.addBody(0, 0, M, 0, 0);
-        this.addBody(r1, 0, 1, 0, v1);
+        this.addBody(r1, 0, 8, 0, v1);
         const a4 = Math.PI / 3;
-        this.addBody(r2 * Math.cos(a4), r2 * Math.sin(a4), 1, -v2_ * Math.sin(a4), v2_ * Math.cos(a4));
+        this.addBody(r2 * Math.cos(a4), r2 * Math.sin(a4), 8, -v2_ * Math.sin(a4), v2_ * Math.cos(a4));
         const a5 = -Math.PI / 3;
-        this.addBody(r2 * Math.cos(a5), r2 * Math.sin(a5), 0.8, -v2_ * Math.sin(a5), v2_ * Math.cos(a5));
+        this.addBody(r2 * Math.cos(a5), r2 * Math.sin(a5), 6, -v2_ * Math.sin(a5), v2_ * Math.cos(a5));
       },
       runaway: () => {
-        // Bondi runaway pair: +15 and -15 side by side.
-        // Positive flees, negative chases — both accelerate in the same direction forever.
-        this.addBody(-3, 0, 15, 0, 0.3);
-        this.addBody(3, 0, -15, 0, 0.3);
+        // Bondi runaway pair: positive flees, negative chases
+        this.addBody(-8, 0, 100, 0, 0.5);
+        this.addBody(8, 0, -100, 0, 0.5);
       },
       necklace: () => {
-        // 6 equal masses in a hexagonal ring, all orbiting their common center.
-        // Beautiful symmetric wells — famously unstable, watch it shatter.
-        const n = 6, m = 5, r = 10;
-        // Orbital speed for n equal masses in a ring (gravitational pull from all others)
+        // 6 equal masses in a hexagonal ring, all orbiting their common center
+        const n = 6, m = 30, r = 30;
         let fSum = 0;
         for (let k = 1; k < n; k++) {
           fSum += 1 / (2 * Math.sin(Math.PI * k / n));
@@ -924,32 +950,27 @@ class Simulation {
         }
       },
       intruder: () => {
-        // Stable binary pair, then a negative-mass intruder flies in from the side.
-        // Watch the bump crash into the wells.
-        const sep = 8, m = 10;
+        // Stable binary pair, then a negative-mass intruder flies in
+        const sep = 25, m = 80;
         const v = Math.sqrt(this.G * m / (4 * (sep / 2)));
         this.addBody(-sep / 2, 0, m, 0, -v);
         this.addBody(sep / 2, 0, m, 0, v);
-        // Intruder: negative mass approaching from upper-left
-        this.addBody(-25, 20, -12, 1.5, -1.2);
+        this.addBody(-50, 40, -60, 2.0, -1.5);
       },
       collapse: () => {
-        // 5 equal masses at pentagon vertices, all stationary.
-        // Symmetric free-fall — then floating-point noise breaks symmetry unpredictably.
-        const n = 5, m = 8, r = 12;
+        // 5 equal masses at pentagon vertices, all stationary
+        const n = 5, m = 50, r = 35;
         for (let i = 0; i < n; i++) {
           const a = (i / n) * Math.PI * 2 - Math.PI / 2;
           this.addBody(r * Math.cos(a), r * Math.sin(a), m, 0, 0);
         }
       },
       hierarchy: () => {
-        // Sun-planet-moon: three nested orbital scales.
-        // Deep well with a smaller well spiraling inside it, and a tiny well orbiting that.
-        const Ms = 20, Mp = 3, Mm = 0.1;
-        const rp = 14; // planet orbital radius
-        const rm = 2.5; // moon distance from planet
+        // Sun-planet-moon: three nested orbital scales
+        const Ms = 150, Mp = 20, Mm = 2;
+        const rp = 40;
+        const rm = 8;
         const vp = Math.sqrt(this.G * Ms / rp);
-        // Moon orbits planet: speed relative to planet, plus planet's orbital velocity
         const vm = Math.sqrt(this.G * Mp / rm);
         this.addBody(0, 0, Ms, 0, 0);
         this.addBody(rp, 0, Mp, 0, vp);
@@ -973,8 +994,8 @@ class Renderer {
     this.camPitch = 35 * Math.PI / 180;
     this.camYaw = -30 * Math.PI / 180;
     this.camDist = 100;
-    this.camTarget = v3.create(0, 0, -2);
-    // No reference Z normalization — mesh shows true potential surface
+    this.camTarget = v3.create(0, 0, 0);
+    this.edgeRefPhi = 0; // raw potential at grid edges: subtracted before mapPhi each frame
 
     // Grid vertex data: (GRID_N+1)^2 vertices
     this.gridN = GRID_N;
@@ -1075,7 +1096,7 @@ class Renderer {
     const ringFS = `
       precision mediump float;
       void main() {
-        gl_FragColor = vec4(0.2, 0.24, 0.32, 0.25);
+        gl_FragColor = vec4(0.45, 0.5, 0.6, 0.6);
       }
     `;
     this.ringProg = this._mkProg(ringVS, ringFS);
@@ -1116,23 +1137,56 @@ class Renderer {
     this.bodyBuf = gl.createBuffer();
   }
 
-  _updateGridVerts() {
-    const gn1 = this.gridN + 1;
-    const extent = Math.max(BOUNDARY_R + 2, this.camDist * 0.55);
-    const step = (extent * 2) / this.gridN;
+  // Compute reference Z level from grid edge midpoints (4 cardinal points).
+  // Subtracting this from all Z values makes grid edges ~flat ("far away = flat space").
+  _computeEdgeRefPhi() {
     const bodies = this.sim.bodies;
     const G = this.sim.G;
+    const e = BOUNDARY_R * 1.2; // Fixed sampling radius — independent of camera/grid
+    // Sample raw potential at 4 cardinal points just outside boundary
+    const p0 = rawPotential(e, 0, bodies, G);
+    const p1 = rawPotential(-e, 0, bodies, G);
+    const p2 = rawPotential(0, e, bodies, G);
+    const p3 = rawPotential(0, -e, bodies, G);
+    return (p0 + p1 + p2 + p3) / 4;
+  }
+
+  _updateGridVerts() {
+    const gn1 = this.gridN + 1;
+    this.gridExtent = Math.max(this.camDist * 0.55, BOUNDARY_R);
+    this.gridStep = (this.gridExtent * 2) / this.gridN;
+    const bodies = this.sim.bodies;
+    const G = this.sim.G;
+    this.edgeRefPhi = this._computeEdgeRefPhi();
 
     for (let i = 0; i <= this.gridN; i++) {
       for (let j = 0; j <= this.gridN; j++) {
-        const x = -extent + j * step;
-        const y = -extent + i * step;
+        const x = -this.gridExtent + j * this.gridStep;
+        const y = -this.gridExtent + i * this.gridStep;
         const idx = (i * gn1 + j) * 3;
         this.gridVerts[idx] = x;
         this.gridVerts[idx + 1] = y;
-        this.gridVerts[idx + 2] = potential(x, y, bodies, G);
+        this.gridVerts[idx + 2] = mapPhi(rawPotential(x, y, bodies, G) - this.edgeRefPhi);
       }
     }
+  }
+
+  // Bilinear interpolation of Z on the grid surface
+  _gridZ(bx, by) {
+    const gn1 = this.gridN + 1;
+    const fx = (bx + this.gridExtent) / this.gridStep;
+    const fy = (by + this.gridExtent) / this.gridStep;
+    const ix = Math.floor(fx), iy = Math.floor(fy);
+    if (ix < 0 || ix >= this.gridN || iy < 0 || iy >= this.gridN)
+      return mapPhi(rawPotential(bx, by, this.sim.bodies, this.sim.G) - this.edgeRefPhi); // fallback if outside grid
+    const tx = fx - ix, ty = fy - iy;
+    const i00 = (iy * gn1 + ix) * 3 + 2;
+    const i10 = i00 + 3;
+    const i01 = i00 + gn1 * 3;
+    const i11 = i01 + 3;
+    const z0 = this.gridVerts[i00] * (1 - tx) + this.gridVerts[i10] * tx;
+    const z1 = this.gridVerts[i01] * (1 - tx) + this.gridVerts[i11] * tx;
+    return z0 * (1 - ty) + z1 * ty;
   }
 
   _updateRingVerts() {
@@ -1142,10 +1196,11 @@ class Renderer {
       const a = (i / this.ringSegs) * Math.PI * 2;
       const x = BOUNDARY_R * Math.cos(a);
       const y = BOUNDARY_R * Math.sin(a);
+      const z = mapPhi(rawPotential(x, y, bodies, G) - this.edgeRefPhi);
       const idx = i * 3;
       this.ringVerts[idx] = x;
       this.ringVerts[idx + 1] = y;
-      this.ringVerts[idx + 2] = potential(x, y, bodies, G);
+      this.ringVerts[idx + 2] = z;
     }
   }
 
@@ -1160,7 +1215,7 @@ class Renderer {
     // Z-up coordinate system
     const view = mat4LookAt(eye, this.camTarget, v3.create(0, 0, 1));
     const aspect = this.w / this.h;
-    const proj = mat4Perspective(Math.PI / 4, aspect, 0.1, 300);
+    const proj = mat4Perspective(Math.PI / 4, aspect, 0.1, Math.max(500, this.camDist * 4));
     return mat4Mul(proj, view);
   }
 
@@ -1281,22 +1336,28 @@ class Renderer {
     gl.uniform1f(gl.getUniformLocation(prog, 'uScale'), this.canvas.height * 0.5);
 
     // Two passes: glow then core
-    // Bodies sit at bottom of their own wells (include self-potential via softening)
+    // Pre-compute body Z positions:
+    //   ON:  sit on actual mesh surface (edge-referenced potential at body position)
+    //   OFF: fixed at Z=0 (edge reference level = "flat space")
     const data = [];
     const G = this.sim.G;
-    // Pass 1: glow (bigger, dim) — bodies offset by radius INTO their curve
+    const baseZ = 0; // edge-referenced: flat space is Z=0
+    const bodyZ = new Float32Array(bodies.length);
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
-      const surfZ = bodyFollowZ ? potential(b.x, b.y, bodies, G) : 0;
+      bodyZ[i] = bodyFollowZ ? mapPhi(rawPotential(b.x, b.y, bodies, G) - this.edgeRefPhi) : baseZ;
+    }
+    // Pass 1: glow (bigger, dim) -- bodies offset by radius INTO their curve
+    for (let i = 0; i < bodies.length; i++) {
+      const b = bodies[i];
       const offset = b.mass >= 0 ? b.r : -b.r; // positive mass sits above well, negative below bump
-      data.push(b.x, b.y, surfZ + offset, b.color[0]*0.6, b.color[1]*0.6, b.color[2]*0.6, 0.25, b.r * 8);
+      data.push(b.x, b.y, bodyZ[i] + offset, b.color[0]*0.6, b.color[1]*0.6, b.color[2]*0.6, 0.25, b.r * 8);
     }
     // Pass 2: core (smaller, bright)
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
-      const surfZ = bodyFollowZ ? potential(b.x, b.y, bodies, G) : 0;
       const offset = b.mass >= 0 ? b.r : -b.r;
-      data.push(b.x, b.y, surfZ + offset, b.color[0], b.color[1], b.color[2], 0.95, b.r * 3.5);
+      data.push(b.x, b.y, bodyZ[i] + offset, b.color[0], b.color[1], b.color[2], 0.95, b.r * 3.5);
     }
 
     const arr = new Float32Array(data);
@@ -1398,10 +1459,17 @@ function bindSlider(id, valId, fmt, onChange) {
 const slider = bindSlider('mass-slider', 'mass-val', v => v.toFixed(1), v => { sim.nextMass = v; });
 bindSlider('g-slider', 'g-val', v => v.toFixed(3), v => { sim.G = v; });
 bindSlider('time-slider', 'time-val', v => v.toFixed(1) + 'x', v => { timeDilation = v; });
-bindSlider('zscale-slider', 'zscale-val', v => v.toFixed(1), v => { Z_SCALE = v; });
 bindSlider('curve-slider', 'curve-val', v => v.toFixed(2), v => { CURVATURE_EXP = v; });
 bindSlider('soften-slider', 'soften-val', v => v.toFixed(1), v => { GRID_SOFTENING = v; });
-bindSlider('radius-slider', 'radius-val', v => v.toFixed(0), v => { BOUNDARY_R = v; });
+// Boundary size radio buttons — changing reloads current preset
+document.querySelectorAll('.boundary-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    BOUNDARY_R = Number(btn.dataset.r);
+    document.querySelectorAll('.boundary-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    sim.loadPreset(sim.currentPreset);
+  });
+});
 
 // Body Z toggle
 document.getElementById('body-z-toggle').addEventListener('click', function() {
@@ -1457,7 +1525,7 @@ ren.canvas.addEventListener('mousemove', e => {
     }
     if (isDragging) {
       ren.camYaw += dx * 0.005;
-      ren.camPitch = Math.max(0.05, Math.min(Math.PI / 2 - 0.05, ren.camPitch + dy * 0.005));
+      ren.camPitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, ren.camPitch + dy * 0.005));
     }
     lastMouse = [e.clientX, e.clientY];
   }
@@ -1584,7 +1652,7 @@ ren.canvas.addEventListener('touchmove', e => {
 
   if (isDragging) {
     ren.camYaw += dx * 0.005;
-    ren.camPitch = Math.max(0.05, Math.min(Math.PI / 2 - 0.05, ren.camPitch + dy * 0.005));
+    ren.camPitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, ren.camPitch + dy * 0.005));
   }
   lastMouse = [t.clientX, t.clientY];
 }, { passive: false });
