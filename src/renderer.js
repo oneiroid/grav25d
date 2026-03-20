@@ -14,7 +14,7 @@ class Renderer {
     this.edgeRefPhi = 0;
 
     // Display params (moved from globals, spec 4a)
-    this.bodyFollowZ = true;
+    this.bodyFollowZ = false;
     this.zScale = 8.5;
     this.curvatureExp = 0.8;
 
@@ -38,6 +38,7 @@ class Renderer {
     this._bodyCapacity = 64;
     this.bodyStaging = new Float32Array(this._bodyCapacity * 2 * 8);
     this._bodyZBuf = new Float32Array(this._bodyCapacity);
+    this._cutoffsBuf = new Float64Array(this._bodyCapacity);
 
     this._initGL();
     this._initGridBuffers();
@@ -205,7 +206,10 @@ class Renderer {
     this.edgeRefPhi = this._computeEdgeRefPhi();
 
     // Pre-compute cutoffs once per frame (spec 2c)
-    const cutoffs = computeCutoffs(bodies, soft);
+    if (bodies.length > this._cutoffsBuf.length) {
+      this._cutoffsBuf = new Float64Array(bodies.length);
+    }
+    const cutoffs = computeCutoffs(bodies, soft, this._cutoffsBuf);
 
     for (let i = 0; i <= this.gridN; i++) {
       for (let j = 0; j <= this.gridN; j++) {

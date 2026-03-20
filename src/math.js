@@ -121,8 +121,8 @@ function rawPotentialCutoff(x, y, bodies, G, softening, cutoffs) {
 
 // Compute squared cutoff radii for each body.
 // cutoffR = 5 * softening * sqrt(|mass|); store squared.
-function computeCutoffs(bodies, softening) {
-  const cutoffs = new Float64Array(bodies.length);
+function computeCutoffs(bodies, softening, out) {
+  const cutoffs = out && out.length >= bodies.length ? out : new Float64Array(bodies.length);
   for (let i = 0; i < bodies.length; i++) {
     const cr = 5 * softening * Math.sqrt(Math.abs(bodies[i].mass));
     cutoffs[i] = cr * cr;
