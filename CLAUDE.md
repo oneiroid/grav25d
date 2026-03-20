@@ -31,7 +31,8 @@
 - `_computeEdgeRefPhi()` samples at fixed radius `BOUNDARY_R * 1.2` (not grid edge) each frame; grid/ring Z = `mapPhi(rawPhi - edgeRefPhi)`
 - `rawPotential()` returns unmapped phi; `mapPhi()` applies pow-of-log
 - `rawPotentialCutoff()` -- optimized variant: skips bodies where `d2 > cutoffs[i]` (used for grid loop only)
-- `computeCutoffs()` -- returns Float64Array of squared cutoff radii (`(5 * softening * sqrt(|mass|))^2`) per body
+- `computeCutoffs()` -- returns Float64Array of paired (inner^2, outer^2) cutoff radii per body; inner = `(5 * softening * sqrt(|mass|))^2`, outer = inner * 1.5
+- `rawPotentialCutoff` uses smoothstep fade between inner and outer radii (no hard step)
 - Grid uses `rawPotentialCutoff` + pre-computed cutoffs for performance; `_computeEdgeRefPhi`, `_updateRingVerts`, and body Z use `rawPotential` (accuracy matters there)
 - Plummer softening (`sqrt(r^2 + s^2)`) for smooth grid wells
 - Boundary ring is purely visual -- recomputes Z from edge-referenced potential each frame, does NOT influence camera

@@ -102,9 +102,11 @@ function mapPhi(phi, zScale, curvatureExp) {
   return Math.max(-MAX_WELL_DEPTH, Math.min(MAX_WELL_DEPTH, z));
 }
 
-// Optimized rawPotential with distance cutoff (spec 2c).
-// cutoffs[i] = squared cutoff radius for bodies[i], pre-computed per frame.
-// Bodies beyond cutoff contribute negligibly and are skipped.
+// Optimized rawPotential with distance cutoff and smooth fade (spec 2c).
+// Each body has two radii stored consecutively: cutoffs[2*i] = inner^2 (full
+// contribution), cutoffs[2*i+1] = outer^2 (zero contribution).
+// Between inner and outer the contribution fades via smoothstep, eliminating
+// the visible "step" a hard cutoff would produce.
 function rawPotentialCutoff(x, y, bodies, G, softening, cutoffs) {
   let phi = 0;
   const s2 = softening * softening;
@@ -112,20 +114,30 @@ function rawPotentialCutoff(x, y, bodies, G, softening, cutoffs) {
     const b = bodies[i];
     const dx = x - b.x, dy = y - b.y;
     const d2 = dx * dx + dy * dy;
-    if (d2 > cutoffs[i]) continue;
+    const j = i * 2;
+    if (d2 > cutoffs[j + 1]) continue;       // beyond outer -- skip entirely
     const r = Math.sqrt(d2 + s2);
-    phi -= G * b.mass / r;
+    let contrib = -G * b.mass / r;
+    if (d2 > cutoffs[j]) {                    // in fade zone -- smoothstep
+      const t = (d2 - cutoffs[j]) / (cutoffs[j + 1] - cutoffs[j]);
+      contrib *= 1 - t * t * (3 - 2 * t);    // smoothstep fade-out
+    }
+    phi += contrib;
   }
   return phi;
 }
 
-// Compute squared cutoff radii for each body.
-// cutoffR = 5 * softening * sqrt(|mass|); store squared.
+// Compute paired cutoff radii (inner^2, outer^2) for each body.
+// inner = 5 * softening * sqrt(|mass|)  -- full contribution inside this
+// outer = inner * 1.5                   -- fades to zero at this distance
 function computeCutoffs(bodies, softening, out) {
-  const cutoffs = out && out.length >= bodies.length ? out : new Float64Array(bodies.length);
+  const need = bodies.length * 2;
+  const cutoffs = out && out.length >= need ? out : new Float64Array(need);
   for (let i = 0; i < bodies.length; i++) {
-    const cr = 5 * softening * Math.sqrt(Math.abs(bodies[i].mass));
-    cutoffs[i] = cr * cr;
+    const inner = 5 * softening * Math.sqrt(Math.abs(bodies[i].mass));
+    const outer = inner * 1.5;
+    cutoffs[i * 2] = inner * inner;
+    cutoffs[i * 2 + 1] = outer * outer;
   }
   return cutoffs;
 }

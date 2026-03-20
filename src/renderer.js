@@ -11,8 +11,6 @@ class Renderer {
     this.camYaw = -30 * Math.PI / 180;
     this.camDist = 100;
     this.camTarget = v3.create(0, 0, 0);
-    this.edgeRefPhi = 0;
-
     // Display params (moved from globals, spec 4a)
     this.bodyFollowZ = false;
     this.zScale = 8.5;
@@ -38,7 +36,7 @@ class Renderer {
     this._bodyCapacity = 64;
     this.bodyStaging = new Float32Array(this._bodyCapacity * 2 * 8);
     this._bodyZBuf = new Float32Array(this._bodyCapacity);
-    this._cutoffsBuf = new Float64Array(this._bodyCapacity);
+    this._cutoffsBuf = new Float64Array(this._bodyCapacity * 2);
 
     this._initGL();
     this._initGridBuffers();
@@ -184,18 +182,6 @@ class Renderer {
     this.bodyBuf = gl.createBuffer();
   }
 
-  _computeEdgeRefPhi() {
-    const bodies = this.sim.bodies;
-    const G = this.sim.G;
-    const soft = this.sim.gridSoftening;
-    const e = this.sim.boundaryR * 1.2;
-    const p0 = rawPotential(e, 0, bodies, G, soft);
-    const p1 = rawPotential(-e, 0, bodies, G, soft);
-    const p2 = rawPotential(0, e, bodies, G, soft);
-    const p3 = rawPotential(0, -e, bodies, G, soft);
-    return (p0 + p1 + p2 + p3) / 4;
-  }
-
   _updateGridVerts() {
     const gn1 = this.gridN + 1;
     this.gridExtent = Math.max(this.camDist * 0.55, this.sim.boundaryR);
@@ -203,11 +189,9 @@ class Renderer {
     const bodies = this.sim.bodies;
     const G = this.sim.G;
     const soft = this.sim.gridSoftening;
-    this.edgeRefPhi = this._computeEdgeRefPhi();
-
     // Pre-compute cutoffs once per frame (spec 2c)
-    if (bodies.length > this._cutoffsBuf.length) {
-      this._cutoffsBuf = new Float64Array(bodies.length);
+    if (bodies.length * 2 > this._cutoffsBuf.length) {
+      this._cutoffsBuf = new Float64Array(bodies.length * 2);
     }
     const cutoffs = computeCutoffs(bodies, soft, this._cutoffsBuf);
 
@@ -218,7 +202,7 @@ class Renderer {
         const idx = (i * gn1 + j) * 3;
         this.gridVerts[idx] = x;
         this.gridVerts[idx + 1] = y;
-        this.gridVerts[idx + 2] = mapPhi(rawPotentialCutoff(x, y, bodies, G, soft, cutoffs) - this.edgeRefPhi, this.zScale, this.curvatureExp);
+        this.gridVerts[idx + 2] = mapPhi(rawPotentialCutoff(x, y, bodies, G, soft, cutoffs), this.zScale, this.curvatureExp);
       }
     }
   }
@@ -228,16 +212,20 @@ class Renderer {
     const G = this.sim.G;
     const soft = this.sim.gridSoftening;
     const boundaryR = this.sim.boundaryR;
+    let zSum = 0;
     for (let i = 0; i <= this.ringSegs; i++) {
       const a = (i / this.ringSegs) * Math.PI * 2;
       const x = boundaryR * Math.cos(a);
       const y = boundaryR * Math.sin(a);
-      const z = mapPhi(rawPotential(x, y, bodies, G, soft) - this.edgeRefPhi, this.zScale, this.curvatureExp);
+      const z = mapPhi(rawPotential(x, y, bodies, G, soft), this.zScale, this.curvatureExp);
       const idx = i * 3;
       this.ringVerts[idx] = x;
       this.ringVerts[idx + 1] = y;
       this.ringVerts[idx + 2] = z;
+      zSum += z;
     }
+    // Camera tracks average ring Z so grid stays centered in view
+    this.camTarget[2] = this.ringSegs > 0 ? zSum / (this.ringSegs + 1) : 0;
   }
 
   getMVP() {
@@ -373,7 +361,7 @@ class Renderer {
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
       bodyZ[i] = this.bodyFollowZ
-        ? mapPhi(rawPotential(b.x, b.y, bodies, G, soft) - this.edgeRefPhi, this.zScale, this.curvatureExp)
+        ? mapPhi(rawPotential(b.x, b.y, bodies, G, soft), this.zScale, this.curvatureExp)
         : baseZ;
     }
 
