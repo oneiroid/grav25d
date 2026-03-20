@@ -204,6 +204,9 @@ class Renderer {
     const soft = this.sim.gridSoftening;
     this.edgeRefPhi = this._computeEdgeRefPhi();
 
+    // Pre-compute cutoffs once per frame (spec 2c)
+    const cutoffs = computeCutoffs(bodies, soft);
+
     for (let i = 0; i <= this.gridN; i++) {
       for (let j = 0; j <= this.gridN; j++) {
         const x = -this.gridExtent + j * this.gridStep;
@@ -211,7 +214,7 @@ class Renderer {
         const idx = (i * gn1 + j) * 3;
         this.gridVerts[idx] = x;
         this.gridVerts[idx + 1] = y;
-        this.gridVerts[idx + 2] = mapPhi(rawPotential(x, y, bodies, G, soft) - this.edgeRefPhi, this.zScale, this.curvatureExp);
+        this.gridVerts[idx + 2] = mapPhi(rawPotentialCutoff(x, y, bodies, G, soft, cutoffs) - this.edgeRefPhi, this.zScale, this.curvatureExp);
       }
     }
   }

@@ -101,3 +101,31 @@ function mapPhi(phi, zScale, curvatureExp) {
   const z = sign * zScale * Math.pow(Math.log(1 + Math.abs(phi) / PHI_SCALE), curvatureExp);
   return Math.max(-MAX_WELL_DEPTH, Math.min(MAX_WELL_DEPTH, z));
 }
+
+// Optimized rawPotential with distance cutoff (spec 2c).
+// cutoffs[i] = squared cutoff radius for bodies[i], pre-computed per frame.
+// Bodies beyond cutoff contribute negligibly and are skipped.
+function rawPotentialCutoff(x, y, bodies, G, softening, cutoffs) {
+  let phi = 0;
+  const s2 = softening * softening;
+  for (let i = 0; i < bodies.length; i++) {
+    const b = bodies[i];
+    const dx = x - b.x, dy = y - b.y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 > cutoffs[i]) continue;
+    const r = Math.sqrt(d2 + s2);
+    phi -= G * b.mass / r;
+  }
+  return phi;
+}
+
+// Compute squared cutoff radii for each body.
+// cutoffR = 5 * softening * sqrt(|mass|); store squared.
+function computeCutoffs(bodies, softening) {
+  const cutoffs = new Float64Array(bodies.length);
+  for (let i = 0; i < bodies.length; i++) {
+    const cr = 5 * softening * Math.sqrt(Math.abs(bodies[i].mass));
+    cutoffs[i] = cr * cr;
+  }
+  return cutoffs;
+}
