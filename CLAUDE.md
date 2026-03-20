@@ -27,17 +27,14 @@
 - MAX_WELL_DEPTH should stay high (>=100); pow-of-log mapping compresses naturally, clamp is only for pathological cases
 - CURVATURE_EXP controls compression: <1 amplifies small masses, compresses large
 - PHI_SCALE divides raw phi inside log, linearizing small potentials to reduce bump/well asymmetry
-- Edge-referenced potential: `edgeRefPhi` = average *raw* potential at 4 cardinal points at `BOUNDARY_R * 1.2`, subtracted from raw phi *before* mapPhi so the nonlinear compression operates on relative potential
-- `_computeEdgeRefPhi()` samples at fixed radius `BOUNDARY_R * 1.2` (not grid edge) each frame; grid/ring Z = `mapPhi(rawPhi - edgeRefPhi)`
 - `rawPotential()` returns unmapped phi; `mapPhi()` applies pow-of-log
-- `rawPotentialCutoff()` -- optimized variant: skips bodies where `d2 > cutoffs[i]` (used for grid loop only)
+- `rawPotentialCutoff()` -- optimized variant with paired cutoff radii per body; skips bodies beyond outer radius, smoothstep-fades between inner and outer (no hard step). Used for grid loop only.
 - `computeCutoffs()` -- returns Float64Array of paired (inner^2, outer^2) cutoff radii per body; inner = `(5 * softening * sqrt(|mass|))^2`, outer = inner * 1.5
-- `rawPotentialCutoff` uses smoothstep fade between inner and outer radii (no hard step)
-- Grid uses `rawPotentialCutoff` + pre-computed cutoffs for performance; `_computeEdgeRefPhi`, `_updateRingVerts`, and body Z use `rawPotential` (accuracy matters there)
+- Grid uses `rawPotentialCutoff` + pre-computed cutoffs for performance; `_updateRingVerts` and body Z use `rawPotential` (accuracy matters there)
 - Plummer softening (`sqrt(r^2 + s^2)`) for smooth grid wells
-- Boundary ring is purely visual -- recomputes Z from edge-referenced potential each frame, does NOT influence camera
-- Camera target is fixed at origin (0,0,0); Z=0 is the edge reference level
-- Boundary is fully decoupled: BOUNDARY_R only affects physics (body bounce) and ring geometry, not grid Z or camera
+- Boundary ring is purely visual -- recomputes Z from absolute potential each frame; average ring Z drives `camTarget[2]`
+- Camera target XY fixed at origin; Z tracks average boundary ring Z each frame (keeps grid centered in view without falsifying potential)
+- Boundary is fully decoupled: BOUNDARY_R only affects physics (body bounce), ring geometry, and camera Z tracking
 - Camera distance range: [25, 300]; pitch range [-PI/2, PI/2] (can look from below); far plane = `max(500, camDist * 4)`
 - Bodies rendered as point sprites sitting on the curved surface
 - Body Z computed per-body each frame (see `bodyFollowZ` toggle); radius offset is mass-sign-dependent: `+radius` for positive mass (above well), `-radius` for negative (below bump)
@@ -45,7 +42,7 @@
 - Multiple presets: solar, binary, figure-8, trojan, runaway, necklace, intruder, collapse, hierarchy
 - UI params panel: "new body" section (mass slider) separated from "simulation" section (gravity, time)
 - Advanced params (body Z toggle, Z_SCALE, CURVATURE_EXP, softening, boundary radius) hidden behind expand button
-- `bodyFollowZ` toggle: ON = bodies sit on edge-referenced mesh surface; OFF = bodies sit at Z=0 (flat reference plane); disabled by default
+- `bodyFollowZ` toggle: ON = bodies sit on mesh surface (absolute potential); OFF = bodies sit at Z=0 (flat reference plane); disabled by default
 - BOUNDARY_R selectable via 4-size radio buttons: S(60), M(120), L(200), XL(350); changing reloads current preset
 
 ## State Ownership
