@@ -324,6 +324,11 @@
     text-transform: uppercase;
   }
 
+  .mass-scale-row {
+    margin-top: -2px;
+    margin-bottom: 2px;
+  }
+
   /* ── Expand/collapse for advanced params ── */
   .params-expand-btn {
     background: none;

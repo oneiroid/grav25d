@@ -34,8 +34,13 @@
   <div class="section-label">new body</div>
   <div class="slider-control">
     <span class="slider-label">mass</span>
-    <input type="range" id="mass-slider" min="-200" max="200" step="1.0" value="5">
+    <input type="range" id="mass-slider" min="-3" max="3" step="0.01" value="0.78">
     <span class="slider-val" id="mass-val">5.0</span>
+  </div>
+  <div class="toggle-control mass-scale-row">
+    <span class="slider-label">scale</span>
+    <div class="toggle-switch on" id="mass-scale-toggle"></div>
+    <span class="toggle-status" id="mass-scale-label">log</span>
   </div>
   <div class="params-divider"></div>
   <div class="section-label">simulation</div>
@@ -50,9 +55,14 @@
     <span class="slider-val" id="time-val">1.0x</span>
   </div>
   <div class="toggle-control">
+    <span class="slider-label">merge</span>
+    <div class="toggle-switch on" id="merge-toggle"></div>
+    <span class="toggle-status" id="merge-status">on</span>
+  </div>
+  <div class="toggle-control">
     <span class="slider-label">body z</span>
-    <div class="toggle-switch" id="body-z-toggle"></div>
-    <span class="toggle-status" id="body-z-status">off</span>
+    <div class="toggle-switch on" id="body-z-toggle"></div>
+    <span class="toggle-status" id="body-z-status">on</span>
   </div>
   <div class="slider-control">
     <span class="slider-label">boundary</span>

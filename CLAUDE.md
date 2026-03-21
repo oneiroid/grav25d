@@ -31,6 +31,8 @@
 - `rawPotentialCutoff()` -- optimized variant with paired cutoff radii per body; skips bodies beyond outer radius, smoothstep-fades between inner and outer (no hard step). Used for grid loop only.
 - `computeCutoffs()` -- returns Float64Array of paired (inner^2, outer^2) cutoff radii per body; inner = `(5 * softening * sqrt(|mass|))^2`, outer = inner * 1.5
 - Grid uses `rawPotentialCutoff` + pre-computed cutoffs for performance; `_updateRingVerts` and body Z use `rawPotential` (accuracy matters there)
+- Body merging (accretion): toggleable via `mergeEnabled` (ON by default). When ON: overlapping bodies (dist < 0.5*max(r1,r2)) merge with momentum conservation if gravitationally bound (KE < PE); unbound flybys pass through; cancelling masses (|sum|<0.01) annihilate. When OFF: bodies pass through each other; force softening increases to sum-of-radii for overlapping pairs, capping acceleration naturally
+- Click-to-add computes auto-orbital velocity: finds dominant body by gravitational pull, sets circular orbit speed perpendicular to radial, adds ~20% scatter + inherits parent body velocity
 - Plummer softening (`sqrt(r^2 + s^2)`) for smooth grid wells
 - Boundary ring is purely visual -- recomputes Z from absolute potential each frame; average ring Z drives `camTarget[2]`
 - Camera target XY fixed at origin; Z tracks average boundary ring Z each frame (keeps grid centered in view without falsifying potential)
@@ -42,11 +44,11 @@
 - Multiple presets: solar, binary, figure-8, trojan, runaway, necklace, intruder, collapse, hierarchy
 - UI params panel: "new body" section (mass slider) separated from "simulation" section (gravity, time)
 - Advanced params (body Z toggle, Z_SCALE, CURVATURE_EXP, softening, boundary radius) hidden behind expand button
-- `bodyFollowZ` toggle: ON = bodies sit on mesh surface (absolute potential); OFF = bodies sit at Z=0 (flat reference plane); disabled by default
+- `bodyFollowZ` toggle: ON = bodies sit on mesh surface (absolute potential); OFF = bodies sit at Z=0 (flat reference plane); enabled by default
 - BOUNDARY_R selectable via 4-size radio buttons: S(60), M(120), L(200), XL(350); changing reloads current preset
 
 ## State Ownership
-- `timeDilation`, `gridSoftening`, `boundaryR`, `colorIdx` -- owned by `Simulation`
+- `timeDilation`, `gridSoftening`, `boundaryR`, `colorIdx`, `mergeEnabled` -- owned by `Simulation`
 - `bodyFollowZ`, `zScale`, `curvatureExp` -- owned by `Renderer`
 - GL uniform/attribute locations cached in `Renderer.gridLocs`, `bodyLocs`, `ringLocs`
 - Body staging buffer pre-allocated in `Renderer.bodyStaging` (grows on demand, never shrinks)
@@ -61,8 +63,12 @@
 - `flat` is a GLSL reserved word -- do not use as variable name
 - Column-major matrices (Float32Array), Z-up coordinate system
 - Fonts: DM Mono + Fraunces (loaded from Google Fonts)
-- `Math.pow(negative, 1/3)` returns NaN in JS -- always use `Math.abs()` for body radius
+- `Math.pow(negative, 1/3)` returns NaN in JS -- always use `Math.abs()` for mass-dependent calculations
 - Grid shader uses dual uniforms `uMinZ`/`uMaxZ` for well/bump coloring
+- Mass slider: logarithmic by default, `mass = sign(s) * (10^|s| - 1)` where s in [-3,3]; toggle to linear (-999..999) via log/lin switch
+- `massFromSlider()`, `sliderFromMass()`, `syncMassSlider()` in main.js handle mapping; `massLogScale` flag tracks mode
+- Body radius: log-based for |mass|>=1: `0.5 + 0.8 * log10(|mass|)`; linear for |mass|<1: `max(0.15, 0.5 * |mass|)`
 - Mass range: slider-configurable; mass=0 is valid (test particle, min radius 0.15)
+- Presets use wider mass ratios (star 500, planets 0.3-5) for more realistic cosmic proportions
 - Negative mass creates "runaway pair" dynamics with positive mass (chase/flee) -- correct physics
 - Preview snapshot tool fails on WebGL canvas; use `preview_eval` + `preview_screenshot` for verification

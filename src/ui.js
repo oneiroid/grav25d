@@ -94,8 +94,8 @@ function bindSlider(id, valId, fmt, onChange) {
 }
 
 function syncSliders(sim) {
-  document.getElementById('mass-slider').value = sim.nextMass;
-  document.getElementById('mass-val').textContent = sim.nextMass.toFixed(1);
+  // Mass slider synced via syncMassSlider() in main.js
+  if (typeof syncMassSlider === 'function') syncMassSlider();
   document.getElementById('g-slider').value = sim.G;
   document.getElementById('g-val').textContent = sim.G.toFixed(3);
 }

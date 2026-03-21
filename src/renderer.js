@@ -12,7 +12,7 @@ class Renderer {
     this.camDist = 100;
     this.camTarget = v3.create(0, 0, 0);
     // Display params (moved from globals, spec 4a)
-    this.bodyFollowZ = false;
+    this.bodyFollowZ = true;
     this.zScale = 8.5;
     this.curvatureExp = 0.8;
 

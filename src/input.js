@@ -2,9 +2,33 @@
 function addBodyAtScreen(clientX, clientY, sim, renderer) {
   const hit = renderer.unproject(clientX, clientY);
   if (hit && Math.hypot(hit.x, hit.y) < sim.boundaryR) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1 + Math.random() * 8;
-    sim.addBody(hit.x, hit.y, undefined, speed * Math.cos(angle), speed * Math.sin(angle));
+    // Find dominant gravitational influence (nearest by potential, not distance)
+    let bestPull = 0, bestBody = null;
+    for (const b of sim.bodies) {
+      const dx = hit.x - b.x, dy = hit.y - b.y;
+      const r = Math.sqrt(dx * dx + dy * dy);
+      if (r < 0.1) continue;
+      const pull = sim.G * Math.abs(b.mass) / r;
+      if (pull > bestPull) { bestPull = pull; bestBody = b; }
+    }
+    let vx = 0, vy = 0;
+    if (bestBody) {
+      const dx = hit.x - bestBody.x, dy = hit.y - bestBody.y;
+      const r = Math.sqrt(dx * dx + dy * dy);
+      // Circular orbit speed: v = sqrt(G * |M| / r)
+      const vOrbit = Math.sqrt(sim.G * Math.abs(bestBody.mass) / r);
+      // Perpendicular direction (CCW), randomize sign
+      const sign = Math.random() < 0.5 ? 1 : -1;
+      const nx = dx / r, ny = dy / r;
+      const tx = -ny * sign, ty = nx * sign;
+      // 20% random scatter on speed and angle
+      const scatter = 0.8 + Math.random() * 0.4;
+      const angleJitter = (Math.random() - 0.5) * 0.4;
+      const ca = Math.cos(angleJitter), sa = Math.sin(angleJitter);
+      vx = bestBody.vx + vOrbit * scatter * (tx * ca - ty * sa);
+      vy = bestBody.vy + vOrbit * scatter * (tx * sa + ty * ca);
+    }
+    sim.addBody(hit.x, hit.y, undefined, vx, vy);
   }
 }
 
@@ -17,8 +41,8 @@ function initInput(sim, ren) {
       case 'r': case 'R': sim.loadPreset(sim.currentPreset); toast('RESET'); break;
       case 'G': sim.G = Math.min(sim.G + 1, 50); syncSliders(sim); break;
       case 'g': sim.G = Math.max(sim.G - 1, -50); syncSliders(sim); break;
-      case '=': case '+': sim.nextMass = Math.min(sim.nextMass + 1, 200); syncSliders(sim); break;
-      case '-': sim.nextMass = Math.max(sim.nextMass - 1, -200); syncSliders(sim); break;
+      case '=': case '+': sim.nextMass = Math.min(sim.nextMass * 1.2 || 1, 999); syncSliders(sim); break;
+      case '-': sim.nextMass = Math.max(sim.nextMass / 1.2 || -1, -999); syncSliders(sim); break;
     }
   });
 
