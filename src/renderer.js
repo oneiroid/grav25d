@@ -352,7 +352,7 @@ class Renderer {
 
     const G = this.sim.G;
     const soft = this.sim.gridSoftening;
-    const baseZ = 0;
+    const baseZ = this.camTarget[2];
     let off = 0;
     const buf = this.bodyStaging;
 
